@@ -18,6 +18,9 @@
 #define E32_M1 7 // M1 của E32
 // Không sử dụng chân AUX
 
+// Định nghĩa địa chỉ node - mỗi node nên có một địa chỉ duy nhất
+#define NODE_ID "NODE001"
+
 // Khởi tạo SoftwareSerial cho giao tiếp với E32
 SoftwareSerial E32Serial(11, 10); // RX, TX
 
@@ -42,7 +45,8 @@ void setup() {
   setE32Mode(HIGH, HIGH); // M0=0, M1=0: Normal mode
   
   Serial.println("Initializing the system...");
-
+  Serial.print("Node ID: ");
+  Serial.println(NODE_ID);
   
   // Kiểm tra kết nối với cảm biến SHT30
   if (isConnected()) {
@@ -96,8 +100,9 @@ void loop() {
       // Đọc điện áp pin (tùy chọn)
       uint16_t batteryLevel = analogRead(A0);
       
-      // Đóng gói dữ liệu thành chuỗi 
-      sprintf(dataPacket, "T:%s,H:%s,B:%d,TS:%lu", 
+      // Đóng gói dữ liệu thành chuỗi, thêm địa chỉ node 
+      sprintf(dataPacket, "ID:%s,T:%s,H:%s,B:%d,TS:%lu", 
+              NODE_ID,
               tempStr, 
               humStr, 
               batteryLevel, 
