@@ -1,0 +1,23 @@
+services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"  # InfluxDB UI port
+    volumes:
+      - ./influxdb/data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=your-strong-password
+      - DOCKER_INFLUXDB_INIT_ORG=myorg
+      - DOCKER_INFLUXDB_INIT_BUCKET=mybucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=your-admin-token
+    restart: unless-stopped
+    networks:
+      - mqtt-network
+
+networks:
+  mqtt-network:
+    name: mqtt-network
+    external: true  # Sử dụng network đã được tạo từ mosquitto-compose.yml

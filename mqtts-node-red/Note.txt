@@ -1,0 +1,1 @@
+Mosquitto → InfluxDB → Node-RED 

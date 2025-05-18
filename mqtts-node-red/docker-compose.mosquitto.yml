@@ -1,0 +1,16 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - "8883:8883"  # MQTTS port
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/certs:/mosquitto/certs
+    restart: unless-stopped
+    networks:
+      - mqtt-network
+
+networks:
+  mqtt-network:
+    name: mqtt-network

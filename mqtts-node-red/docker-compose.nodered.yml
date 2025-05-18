@@ -1,0 +1,18 @@
+services:
+  nodered:
+    image: nodered/node-red:latest
+    container_name: node-red
+    ports:
+      - "1880:1880"  # Node-RED UI port
+    volumes:
+      - ./node-red/data:/data
+    environment:
+      - NODE_RED_CREDENTIAL_SECRET=your-secret-key  # Đặt secret key cho Node-RED
+    restart: unless-stopped
+    networks:
+      - mqtt-network
+
+networks:
+  mqtt-network:
+    name: mqtt-network
+    external: true  # Sử dụng network đã được tạo từ mosquitto-compose.yml
