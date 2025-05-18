@@ -1,0 +1,910 @@
+[
+    {
+        "id": "b29c791c181c83d0",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "5f475b7d70c17003",
+        "type": "mqtt in",
+        "z": "b29c791c181c83d0",
+        "name": "MQTT Data Input",
+        "topic": "lora_sensor/data",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "mqtt_broker",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 380,
+        "y": 120,
+        "wires": [
+            [
+                "c959c2cbc262d3be"
+            ]
+        ]
+    },
+    {
+        "id": "c959c2cbc262d3be",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "Parse Data",
+        "func": "// Store current timestamp for tracking last update time\nlet currentTime = new Date().getTime();\n\n// Parse JSON if it's a string\nif (typeof msg.payload === 'string') {\n    try {\n        msg.payload = JSON.parse(msg.payload);\n    } catch (e) {\n        node.error(\"Error parsing JSON\", e);\n        return null;\n    }\n}\n\nif (msg.payload.nodeId === 'NODE001') {\n    flow.set('temp_node_1', msg.payload.temperature);\n    flow.set('humid_node_1', msg.payload.humidity);\n    flow.set('status_node_1', 'ONLINE');\n    flow.set('last_update_node_1', currentTime);\n    flow.set('battery_node_1', msg.payload.batteryVoltage);\n} else if (msg.payload.nodeId === 'NODE002') {\n    flow.set('temp_node_2', msg.payload.temperature);\n    flow.set('humid_node_2', msg.payload.humidity);\n    flow.set('status_node_2', 'ONLINE');\n    flow.set('last_update_node_2', currentTime);\n    flow.set('battery_node_2', msg.payload.batteryVoltage);\n}\n\n// Format data for InfluxDB\nmsg.payload = [{\n    temperature: msg.payload.temperature,\n    humidity: msg.payload.humidity,\n    batteryVoltage: msg.payload.batteryVoltage,\n    timestamp: msg.payload.timestamp || currentTime\n}, {\n    nodeId: msg.payload.nodeId\n}];\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 120,
+        "wires": [
+            [
+                "7d5d2901d5a01faf"
+            ]
+        ]
+    },
+    {
+        "id": "cdec4a44c3a6470b",
+        "type": "mqtt out",
+        "z": "b29c791c181c83d0",
+        "name": "Send GET NOW",
+        "topic": "lora_sensor/get_now",
+        "qos": "2",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt_broker",
+        "x": 760,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "72f63fd5fab4a859",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "Handle Polling Node 1",
+        "func": "// Save the polling setting to flow variable\nflow.set('polling_node_1', msg.payload);\n\n// Send MQTT message with polling setting\nmsg.topic = 'lora_sensor/set_polling';\nmsg.payload = {nodeId: 'node1', polling: msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 440,
+        "wires": [
+            [
+                "new_mqtt_polling_1"
+            ]
+        ]
+    },
+    {
+        "id": "faca54c2002475c6",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "Handle Polling Node 2",
+        "func": "// Save the polling setting to flow variable\nflow.set('polling_node_2', msg.payload);\n\n// Send MQTT message with polling setting\nmsg.topic = 'lora_sensor/set_polling';\nmsg.payload = {nodeId: 'node2', polling: msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 520,
+        "wires": [
+            [
+                "new_mqtt_polling_2"
+            ]
+        ]
+    },
+    {
+        "id": "e9080a447e8aab6a",
+        "type": "mqtt in",
+        "z": "b29c791c181c83d0",
+        "name": "Gateway Status",
+        "topic": "lora_sensor/main_status",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "mqtt_broker",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 800,
+        "y": 360,
+        "wires": [
+            [
+                "5e1e16e0290d0a06"
+            ]
+        ]
+    },
+    {
+        "id": "5e1e16e0290d0a06",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "Set Status",
+        "func": "// Format the message for the status display\nmsg = { payload: msg.payload, main_status: msg.payload };\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1090,
+        "y": 360,
+        "wires": [
+            [
+                "37d3277edbe9fa36"
+            ]
+        ]
+    },
+    {
+        "id": "eb66946c1661e1ac",
+        "type": "inject",
+        "z": "b29c791c181c83d0",
+        "name": "Polling Node 1 Timer",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "poll_node_1",
+        "payload": "",
+        "payloadType": "date",
+        "x": 240,
+        "y": 280,
+        "wires": [
+            [
+                "5ae4bc28697a7a70"
+            ]
+        ]
+    },
+    {
+        "id": "5ae4bc28697a7a70",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "Check Node1 Polling",
+        "func": "let pollingValue = flow.get('polling_node_1');\n\n// Only proceed if polling is configured\nif (pollingValue && pollingValue !== 'OFF') {\n    // Convert to number of seconds\n    let interval = parseInt(pollingValue);\n    \n    // Get current time\n    let currentTime = new Date().getTime();\n    \n    // Get last poll time\n    let lastPollTime = flow.get('last_poll_node_1') || 0;\n    \n    // Check if it's time to poll\n    if (currentTime - lastPollTime >= interval * 1000) {\n        // Update last poll time\n        flow.set('last_poll_node_1', currentTime);\n        \n        // Send message to request data\n        msg.payload = {command: 'GET_DATA', nodeId: 'NODE001'};\n        msg.topic = 'lora_sensor/get_now';\n        return msg;\n    }\n}\nreturn null;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 280,
+        "wires": [
+            [
+                "cdec4a44c3a6470b"
+            ]
+        ]
+    },
+    {
+        "id": "fcf19afacaeb8f22",
+        "type": "inject",
+        "z": "b29c791c181c83d0",
+        "name": "Polling Node 2 Timer",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "poll_node_2",
+        "payload": "",
+        "payloadType": "date",
+        "x": 240,
+        "y": 340,
+        "wires": [
+            [
+                "055603c24dd818d7"
+            ]
+        ]
+    },
+    {
+        "id": "055603c24dd818d7",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "Check Node2 Polling",
+        "func": "let pollingValue = flow.get('polling_node_2');\n\n// Only proceed if polling is configured\nif (pollingValue && pollingValue !== 'OFF') {\n    // Convert to number of seconds\n    let interval = parseInt(pollingValue);\n    \n    // Get current time\n    let currentTime = new Date().getTime();\n    \n    // Get last poll time\n    let lastPollTime = flow.get('last_poll_node_2') || 0;\n    \n    // Check if it's time to poll\n    if (currentTime - lastPollTime >= interval * 1000) {\n        // Update last poll time\n        flow.set('last_poll_node_2', currentTime);\n        \n        // Send message to request data\n        msg.payload = {command: 'GET_DATA', nodeId: 'NODE002'};\n        msg.topic = 'lora_sensor/get_now';\n        return msg;\n    }\n}\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 520,
+        "y": 340,
+        "wires": [
+            [
+                "cdec4a44c3a6470b"
+            ]
+        ]
+    },
+    {
+        "id": "new_mqtt_polling_1",
+        "type": "mqtt out",
+        "z": "b29c791c181c83d0",
+        "name": "Send Polling Node 1",
+        "topic": "lora_sensor/set_polling_1",
+        "qos": "2",
+        "retain": "",
+        "broker": "mqtt_broker",
+        "x": 800,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "new_mqtt_polling_2",
+        "type": "mqtt out",
+        "z": "b29c791c181c83d0",
+        "name": "Send Polling Node 2",
+        "topic": "lora_sensor/set_polling_2",
+        "qos": "2",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt_broker",
+        "x": 800,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "7d5d2901d5a01faf",
+        "type": "influxdb out",
+        "z": "b29c791c181c83d0",
+        "influxdb": "influxdb_config",
+        "name": "Store to InfluxDB",
+        "measurement": "sensor_data",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "lora_sensor",
+        "x": 1170,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "4246f9e334806e9c",
+        "type": "influxdb in",
+        "z": "b29c791c181c83d0",
+        "influxdb": "influxdb_config",
+        "name": "Get History",
+        "query": "SELECT * FROM history",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "",
+        "x": 710,
+        "y": 740,
+        "wires": [
+            [
+                "9cc002cb101f79ab",
+                "02fb3cc6ae5c730d",
+                "b11c8bae9e6d2884"
+            ]
+        ]
+    },
+    {
+        "id": "c269c7c12e649c30",
+        "type": "ui_button",
+        "z": "b29c791c181c83d0",
+        "name": "GET NOW Button",
+        "group": "3481361afa687a93",
+        "order": 8,
+        "width": 7,
+        "height": 1,
+        "passthru": false,
+        "label": "GET NOW",
+        "tooltip": "",
+        "color": "#4169E1",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "{\"type\":\"GET_NOW\"}",
+        "payloadType": "str",
+        "topic": "lora_sensor/get_now",
+        "topicType": "str",
+        "x": 290,
+        "y": 220,
+        "wires": [
+            [
+                "cdec4a44c3a6470b"
+            ]
+        ]
+    },
+    {
+        "id": "22f3c2cd45d2d7cc",
+        "type": "ui_dropdown",
+        "z": "b29c791c181c83d0",
+        "name": "Polling Node 1",
+        "label": "Polling node 1:",
+        "tooltip": "",
+        "place": "",
+        "group": "3481361afa687a93",
+        "order": 5,
+        "width": 6,
+        "height": 1,
+        "passthru": true,
+        "multiple": false,
+        "options": [
+            {
+                "label": "OFF",
+                "value": "OFF",
+                "type": "str"
+            },
+            {
+                "label": "5",
+                "value": "5",
+                "type": "str"
+            },
+            {
+                "label": "10",
+                "value": "10",
+                "type": "str"
+            },
+            {
+                "label": "30",
+                "value": "30",
+                "type": "str"
+            },
+            {
+                "label": "60",
+                "value": "60",
+                "type": "str"
+            }
+        ],
+        "payload": "",
+        "topic": "lora_sensor/set_polling_1",
+        "topicType": "str",
+        "className": "",
+        "x": 200,
+        "y": 440,
+        "wires": [
+            [
+                "72f63fd5fab4a859"
+            ]
+        ]
+    },
+    {
+        "id": "416a0cdd36519871",
+        "type": "ui_dropdown",
+        "z": "b29c791c181c83d0",
+        "name": "Polling Node 2",
+        "label": "Polling node 2:",
+        "tooltip": "",
+        "place": "",
+        "group": "3481361afa687a93",
+        "order": 6,
+        "width": 6,
+        "height": 1,
+        "passthru": true,
+        "multiple": false,
+        "options": [
+            {
+                "label": "OFF",
+                "value": "OFF",
+                "type": "str"
+            },
+            {
+                "label": "5",
+                "value": "5",
+                "type": "str"
+            },
+            {
+                "label": "10",
+                "value": "10",
+                "type": "str"
+            },
+            {
+                "label": "30",
+                "value": "30",
+                "type": "str"
+            },
+            {
+                "label": "60",
+                "value": "60",
+                "type": "str"
+            }
+        ],
+        "payload": "",
+        "topic": "lora_sensor/set_polling_2",
+        "topicType": "str",
+        "className": "",
+        "x": 200,
+        "y": 520,
+        "wires": [
+            [
+                "faca54c2002475c6"
+            ]
+        ]
+    },
+    {
+        "id": "85819d0290336076",
+        "type": "ui_dropdown",
+        "z": "b29c791c181c83d0",
+        "name": "Node Selector",
+        "label": "Select node:",
+        "tooltip": "",
+        "place": "",
+        "group": "3481361afa687a93",
+        "order": 10,
+        "width": 8,
+        "height": 1,
+        "passthru": true,
+        "multiple": false,
+        "options": [
+            {
+                "label": "ALL",
+                "value": "all",
+                "type": "str"
+            },
+            {
+                "label": "Node 1",
+                "value": "node1",
+                "type": "str"
+            },
+            {
+                "label": "Node 2",
+                "value": "node2",
+                "type": "str"
+            }
+        ],
+        "payload": "",
+        "topic": "",
+        "topicType": "str",
+        "className": "",
+        "x": 380,
+        "y": 1020,
+        "wires": [
+            [
+                "34d23aafab3ae2d4"
+            ]
+        ]
+    },
+    {
+        "id": "eed4c24622f41a23",
+        "type": "ui_date_picker",
+        "z": "b29c791c181c83d0",
+        "name": "Date Picker",
+        "label": "Date:",
+        "group": "3481361afa687a93",
+        "order": 11,
+        "width": 9,
+        "height": 1,
+        "passthru": true,
+        "topic": "",
+        "topicType": "str",
+        "className": "",
+        "x": 390,
+        "y": 900,
+        "wires": [
+            [
+                "a33040c915220bda",
+                "70d59f971c81b594"
+            ]
+        ]
+    },
+    {
+        "id": "37d3277edbe9fa36",
+        "type": "ui_text",
+        "z": "b29c791c181c83d0",
+        "group": "3481361afa687a93",
+        "order": 1,
+        "width": 8,
+        "height": 1,
+        "name": "Main Status",
+        "label": "Main:",
+        "format": "<span style=\"{{msg.main_status === 'ONLINE' ? 'color:green;font-weight:bold;' : 'color:red;font-weight:bold;'}}\">{{msg.main_status}}</span>",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 1330,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "9cc002cb101f79ab",
+        "type": "ui_table",
+        "z": "b29c791c181c83d0",
+        "group": "3481361afa687a93",
+        "name": "History Table",
+        "order": 13,
+        "width": 24,
+        "height": 12,
+        "columns": [
+            {
+                "field": "node",
+                "title": "Node",
+                "width": "20%",
+                "align": "center",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "temperature",
+                "title": "Temperature",
+                "width": "20%",
+                "align": "center",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "humidity",
+                "title": "Humidity",
+                "width": "20%",
+                "align": "center",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "battery",
+                "title": "Battery",
+                "width": "20%",
+                "align": "center",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "time",
+                "title": "Update time",
+                "width": "20%",
+                "align": "center",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            }
+        ],
+        "outputs": 0,
+        "cts": false,
+        "x": 1290,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "0a775f4a44e50ada",
+        "type": "ui_template",
+        "z": "b29c791c181c83d0",
+        "group": "3481361afa687a93",
+        "name": "Node 1 Box",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "format": "<style>\n  .node-box { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }\n  .node-title { font-size: 16px; margin: 0; display: flex; justify-content: space-between; }\n  .node-data { margin: 5px 0; }\n  .status-online { color: green; font-weight: bold; }\n  .status-offline { color: red; font-weight: bold; }\n</style>\n\n<div class=\"node-box\">\n  <p class=\"node-title\">\n    <span>Node 1:</span> \n    <span ng-class=\"{'status-online': flow.status_node_1 === 'ONLINE', 'status-offline': flow.status_node_1 !== 'ONLINE'}\">{{flow.status_node_1 || 'OFFLINE'}}</span>\n  </p>\n  <p class=\"node-data\">Temperature 1: {{flow.temp_node_1 | number:2}} °C</p>\n  <p class=\"node-data\">Humidity 1: {{flow.humid_node_1 | number:2}} %</p>\n</div>",
+        "storeOutMessages": false,
+        "fwdInMessages": false,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 890,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d792ce77f6ae4a9e",
+        "type": "ui_template",
+        "z": "b29c791c181c83d0",
+        "group": "3481361afa687a93",
+        "name": "Node 2 Box",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "format": "<style>\n  .node-box { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }\n  .node-title { font-size: 16px; margin: 0; display: flex; justify-content: space-between; }\n  .node-data { margin: 5px 0; }\n  .status-online { color: green; font-weight: bold; }\n  .status-offline { color: red; font-weight: bold; }\n</style>\n\n<div class=\"node-box\">\n  <p class=\"node-title\">\n    <span>Node 2:</span>\n    <span ng-class=\"{'status-online': flow.status_node_2 === 'ONLINE', 'status-offline': flow.status_node_2 !== 'ONLINE'}\">{{flow.status_node_2 || 'OFFLINE'}}</span>\n  </p>\n  <p class=\"node-data\">Temperature 2: {{flow.temp_node_2 | number:2}} °C</p>\n  <p class=\"node-data\">Humidity 2: {{flow.humid_node_2 | number:2}} %</p>\n  <p class=\"node-data\">Bar 2: {{flow.humid_node_2 | number:2}} %</p>\n</div>",
+        "storeOutMessages": false,
+        "fwdInMessages": false,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 890,
+        "y": 20,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c1323bab9c96cfe5",
+        "type": "inject",
+        "z": "b29c791c181c83d0",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 410,
+        "y": 740,
+        "wires": [
+            [
+                "4246f9e334806e9c"
+            ]
+        ]
+    },
+    {
+        "id": "02fb3cc6ae5c730d",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "function 1",
+        "func": "flow.set(\"temp\",msg.payload)",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 980,
+        "y": 680,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b11c8bae9e6d2884",
+        "type": "debug",
+        "z": "b29c791c181c83d0",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "a33040c915220bda",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "function 2",
+        "func": "// Lấy mảng dữ liệu từ flow context\nconst data = flow.get(\"temp\");\nconst targetDate = new Date(msg.payload); // Chuyển timestamp thành đối tượng Date\n\n// Kiểm tra nếu dữ liệu không tồn tại\nif (!data || !Array.isArray(data)) {\n    node.warn(\"Không tìm thấy dữ liệu hoặc dữ liệu không phải mảng\");\n    msg.payload = [];\n    return msg;\n}\n\n// Lọc dữ liệu theo ngày\nmsg.payload = data.filter(item => {\n    // Chuyển đổi chuỗi ISO date thành đối tượng Date\n    const itemDate = new Date(item.time);\n    \n    // So sánh ngày (không bao gồm giờ)\n    return itemDate.getFullYear() === targetDate.getFullYear() && \n           itemDate.getMonth() === targetDate.getMonth() && \n           itemDate.getDate() === targetDate.getDate();\n});\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 900,
+        "wires": [
+            [
+                "9cc002cb101f79ab",
+                "cbe78c80e4aaaa51"
+            ]
+        ]
+    },
+    {
+        "id": "34d23aafab3ae2d4",
+        "type": "function",
+        "z": "b29c791c181c83d0",
+        "name": "function 3",
+        "func": "// Lấy mảng dữ liệu từ flow context\nconst data = flow.get(\"temp\");\nconst nodeFilter = msg.payload;\n\n// Kiểm tra nếu dữ liệu không tồn tại\nif (!data || !Array.isArray(data)) {\n    node.warn(\"Không tìm thấy dữ liệu hoặc dữ liệu không phải mảng\");\n    msg.payload = [];\n    return msg;\n}\n\n// Lọc dữ liệu dựa trên giá trị node\nif (!nodeFilter || nodeFilter === \"all\") {\n    // Trả về tất cả dữ liệu nếu là \"all\"\n    msg.payload = data;\n} else {\n    // Lọc dữ liệu theo node được chỉ định\n    msg.payload = data.filter(item => item.node === nodeFilter);\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 1020,
+        "wires": [
+            [
+                "9cc002cb101f79ab",
+                "8309df40bb2f12a3"
+            ]
+        ]
+    },
+    {
+        "id": "70d59f971c81b594",
+        "type": "debug",
+        "z": "b29c791c181c83d0",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 520,
+        "y": 1080,
+        "wires": []
+    },
+    {
+        "id": "8309df40bb2f12a3",
+        "type": "debug",
+        "z": "b29c791c181c83d0",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 900,
+        "y": 1120,
+        "wires": []
+    },
+    {
+        "id": "8a738056b83fbd06",
+        "type": "ui_button",
+        "z": "b29c791c181c83d0",
+        "name": "",
+        "group": "3481361afa687a93",
+        "order": 12,
+        "width": 7,
+        "height": 1,
+        "passthru": false,
+        "label": "Refresh",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 400,
+        "y": 820,
+        "wires": [
+            [
+                "4246f9e334806e9c"
+            ]
+        ]
+    },
+    {
+        "id": "cbe78c80e4aaaa51",
+        "type": "debug",
+        "z": "b29c791c181c83d0",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1020,
+        "y": 980,
+        "wires": []
+    },
+    {
+        "id": "a62e3bda1eae91e2",
+        "type": "ui_spacer",
+        "z": "b29c791c181c83d0",
+        "name": "spacer",
+        "group": "3481361afa687a93",
+        "order": 2,
+        "width": 16,
+        "height": 1
+    },
+    {
+        "id": "d902897b29a3bb44",
+        "type": "ui_spacer",
+        "z": "b29c791c181c83d0",
+        "name": "spacer",
+        "group": "3481361afa687a93",
+        "order": 7,
+        "width": 5,
+        "height": 1
+    },
+    {
+        "id": "943a0b2091d9d352",
+        "type": "ui_spacer",
+        "z": "b29c791c181c83d0",
+        "name": "spacer",
+        "group": "3481361afa687a93",
+        "order": 9,
+        "width": 24,
+        "height": 1
+    },
+    {
+        "id": "mqtt_broker",
+        "type": "mqtt-broker",
+        "name": "MQTT Broker",
+        "broker": "dev.combros.tech",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "influxdb_config",
+        "type": "influxdb",
+        "hostname": "dev.combros.tech",
+        "port": "8086",
+        "database": "UIT_LORA",
+        "name": "InfluxDB Config",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "",
+        "timeout": "",
+        "rejectUnauthorized": false
+    },
+    {
+        "id": "3481361afa687a93",
+        "type": "ui_group",
+        "name": "Main",
+        "tab": "dashboard_tab",
+        "order": 1,
+        "disp": true,
+        "width": 24,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "dashboard_tab",
+        "type": "ui_tab",
+        "name": "LoRa Sensor",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
