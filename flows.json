@@ -1,6 +1,6 @@
 [
     {
-        "id": "b29c791c181c83d0",
+        "id": "30a0866f4520c757",
         "type": "tab",
         "label": "Flow 1",
         "disabled": false,
@@ -8,49 +8,9 @@
         "env": []
     },
     {
-        "id": "5f475b7d70c17003",
-        "type": "mqtt in",
-        "z": "b29c791c181c83d0",
-        "name": "MQTT Data Input",
-        "topic": "lora_sensor/data",
-        "qos": "1",
-        "datatype": "auto-detect",
-        "broker": "mqtt_broker",
-        "nl": false,
-        "rap": false,
-        "inputs": 0,
-        "x": 380,
-        "y": 120,
-        "wires": [
-            [
-                "c959c2cbc262d3be"
-            ]
-        ]
-    },
-    {
-        "id": "c959c2cbc262d3be",
-        "type": "function",
-        "z": "b29c791c181c83d0",
-        "name": "Parse Data",
-        "func": "// Store current timestamp for tracking last update time\nlet currentTime = new Date().getTime();\n\n// Parse JSON if it's a string\nif (typeof msg.payload === 'string') {\n    try {\n        msg.payload = JSON.parse(msg.payload);\n    } catch (e) {\n        node.error(\"Error parsing JSON\", e);\n        return null;\n    }\n}\n\nif (msg.payload.nodeId === 'NODE001') {\n    flow.set('temp_node_1', msg.payload.temperature);\n    flow.set('humid_node_1', msg.payload.humidity);\n    flow.set('status_node_1', 'ONLINE');\n    flow.set('last_update_node_1', currentTime);\n    flow.set('battery_node_1', msg.payload.batteryVoltage);\n} else if (msg.payload.nodeId === 'NODE002') {\n    flow.set('temp_node_2', msg.payload.temperature);\n    flow.set('humid_node_2', msg.payload.humidity);\n    flow.set('status_node_2', 'ONLINE');\n    flow.set('last_update_node_2', currentTime);\n    flow.set('battery_node_2', msg.payload.batteryVoltage);\n}\n\n// Format data for InfluxDB\nmsg.payload = [{\n    temperature: msg.payload.temperature,\n    humidity: msg.payload.humidity,\n    batteryVoltage: msg.payload.batteryVoltage,\n    timestamp: msg.payload.timestamp || currentTime\n}, {\n    nodeId: msg.payload.nodeId\n}];\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 650,
-        "y": 120,
-        "wires": [
-            [
-                "7d5d2901d5a01faf"
-            ]
-        ]
-    },
-    {
-        "id": "cdec4a44c3a6470b",
+        "id": "c7e6244c9da7995a",
         "type": "mqtt out",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Send GET NOW",
         "topic": "lora_sensor/get_now",
         "qos": "2",
@@ -66,11 +26,11 @@
         "wires": []
     },
     {
-        "id": "72f63fd5fab4a859",
+        "id": "98d2ab9969fcdb74",
         "type": "function",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Handle Polling Node 1",
-        "func": "// Save the polling setting to flow variable\nflow.set('polling_node_1', msg.payload);\n\n// Send MQTT message with polling setting\nmsg.topic = 'lora_sensor/set_polling';\nmsg.payload = {nodeId: 'node1', polling: msg.payload};\nreturn msg;",
+        "func": "// Save the polling setting to flow variable\nflow.set('polling_node_1', msg.payload);\n\n// Send MQTT message with polling setting\nmsg.payload = {nodeId: 'node1', polling: msg.payload};\nreturn msg;",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
@@ -81,16 +41,16 @@
         "y": 440,
         "wires": [
             [
-                "new_mqtt_polling_1"
+                "591daa4e0783325d"
             ]
         ]
     },
     {
-        "id": "faca54c2002475c6",
+        "id": "c27b64cefcf0b381",
         "type": "function",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Handle Polling Node 2",
-        "func": "// Save the polling setting to flow variable\nflow.set('polling_node_2', msg.payload);\n\n// Send MQTT message with polling setting\nmsg.topic = 'lora_sensor/set_polling';\nmsg.payload = {nodeId: 'node2', polling: msg.payload};\nreturn msg;",
+        "func": "// Save the polling setting to flow variable\nflow.set('polling_node_2', msg.payload);\n\n// Send MQTT message with polling setting\nmsg.payload = {nodeId: 'node2', polling: msg.payload};\nreturn msg;",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
@@ -101,14 +61,14 @@
         "y": 520,
         "wires": [
             [
-                "new_mqtt_polling_2"
+                "591daa4e0783325d"
             ]
         ]
     },
     {
-        "id": "e9080a447e8aab6a",
+        "id": "11961ab0c8ebdcae",
         "type": "mqtt in",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Gateway Status",
         "topic": "lora_sensor/main_status",
         "qos": "2",
@@ -121,14 +81,14 @@
         "y": 360,
         "wires": [
             [
-                "5e1e16e0290d0a06"
+                "a9e3ca9470cea322"
             ]
         ]
     },
     {
-        "id": "5e1e16e0290d0a06",
+        "id": "a9e3ca9470cea322",
         "type": "function",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Set Status",
         "func": "// Format the message for the status display\nmsg = { payload: msg.payload, main_status: msg.payload };\nreturn msg;",
         "outputs": 1,
@@ -141,14 +101,14 @@
         "y": 360,
         "wires": [
             [
-                "37d3277edbe9fa36"
+                "8686d74fe9755030"
             ]
         ]
     },
     {
-        "id": "eb66946c1661e1ac",
+        "id": "0792f1037b11adeb",
         "type": "inject",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Polling Node 1 Timer",
         "props": [
             {
@@ -170,14 +130,14 @@
         "y": 280,
         "wires": [
             [
-                "5ae4bc28697a7a70"
+                "12e5f0279c066156"
             ]
         ]
     },
     {
-        "id": "5ae4bc28697a7a70",
+        "id": "12e5f0279c066156",
         "type": "function",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Check Node1 Polling",
         "func": "let pollingValue = flow.get('polling_node_1');\n\n// Only proceed if polling is configured\nif (pollingValue && pollingValue !== 'OFF') {\n    // Convert to number of seconds\n    let interval = parseInt(pollingValue);\n    \n    // Get current time\n    let currentTime = new Date().getTime();\n    \n    // Get last poll time\n    let lastPollTime = flow.get('last_poll_node_1') || 0;\n    \n    // Check if it's time to poll\n    if (currentTime - lastPollTime >= interval * 1000) {\n        // Update last poll time\n        flow.set('last_poll_node_1', currentTime);\n        \n        // Send message to request data\n        msg.payload = {command: 'GET_DATA', nodeId: 'NODE001'};\n        msg.topic = 'lora_sensor/get_now';\n        return msg;\n    }\n}\nreturn null;",
         "outputs": 1,
@@ -189,15 +149,13 @@
         "x": 520,
         "y": 280,
         "wires": [
-            [
-                "cdec4a44c3a6470b"
-            ]
+            []
         ]
     },
     {
-        "id": "fcf19afacaeb8f22",
+        "id": "bc3ac6f835637fbc",
         "type": "inject",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Polling Node 2 Timer",
         "props": [
             {
@@ -219,14 +177,14 @@
         "y": 340,
         "wires": [
             [
-                "055603c24dd818d7"
+                "ec6edea2df87bc2c"
             ]
         ]
     },
     {
-        "id": "055603c24dd818d7",
+        "id": "ec6edea2df87bc2c",
         "type": "function",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Check Node2 Polling",
         "func": "let pollingValue = flow.get('polling_node_2');\n\n// Only proceed if polling is configured\nif (pollingValue && pollingValue !== 'OFF') {\n    // Convert to number of seconds\n    let interval = parseInt(pollingValue);\n    \n    // Get current time\n    let currentTime = new Date().getTime();\n    \n    // Get last poll time\n    let lastPollTime = flow.get('last_poll_node_2') || 0;\n    \n    // Check if it's time to poll\n    if (currentTime - lastPollTime >= interval * 1000) {\n        // Update last poll time\n        flow.set('last_poll_node_2', currentTime);\n        \n        // Send message to request data\n        msg.payload = {command: 'GET_DATA', nodeId: 'NODE002'};\n        msg.topic = 'lora_sensor/get_now';\n        return msg;\n    }\n}\nreturn null;",
         "outputs": 1,
@@ -234,31 +192,16 @@
         "x": 520,
         "y": 340,
         "wires": [
-            [
-                "cdec4a44c3a6470b"
-            ]
+            []
         ]
     },
     {
-        "id": "new_mqtt_polling_1",
+        "id": "591daa4e0783325d",
         "type": "mqtt out",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Send Polling Node 1",
-        "topic": "lora_sensor/set_polling_1",
-        "qos": "2",
-        "retain": "",
-        "broker": "mqtt_broker",
-        "x": 800,
-        "y": 440,
-        "wires": []
-    },
-    {
-        "id": "new_mqtt_polling_2",
-        "type": "mqtt out",
-        "z": "b29c791c181c83d0",
-        "name": "Send Polling Node 2",
-        "topic": "lora_sensor/set_polling_2",
-        "qos": "2",
+        "topic": "lora_sensor/set_polling",
+        "qos": "1",
         "retain": "",
         "respTopic": "",
         "contentType": "",
@@ -266,28 +209,14 @@
         "correl": "",
         "expiry": "",
         "broker": "mqtt_broker",
-        "x": 800,
-        "y": 520,
+        "x": 860,
+        "y": 460,
         "wires": []
     },
     {
-        "id": "7d5d2901d5a01faf",
-        "type": "influxdb out",
-        "z": "b29c791c181c83d0",
-        "influxdb": "influxdb_config",
-        "name": "Store to InfluxDB",
-        "measurement": "sensor_data",
-        "precision": "",
-        "retentionPolicy": "",
-        "database": "lora_sensor",
-        "x": 1170,
-        "y": 160,
-        "wires": []
-    },
-    {
-        "id": "4246f9e334806e9c",
+        "id": "908e7a32f507f9e3",
         "type": "influxdb in",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "influxdb": "influxdb_config",
         "name": "Get History",
         "query": "SELECT * FROM history",
@@ -299,25 +228,24 @@
         "y": 740,
         "wires": [
             [
-                "9cc002cb101f79ab",
-                "02fb3cc6ae5c730d",
-                "b11c8bae9e6d2884"
+                "403ecf1e4c14da31",
+                "214e14f817f775f3"
             ]
         ]
     },
     {
-        "id": "c269c7c12e649c30",
+        "id": "4d9ffeefb5d2bb92",
         "type": "ui_button",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "GET NOW Button",
-        "group": "3481361afa687a93",
-        "order": 8,
-        "width": 7,
+        "group": "2e7e904a8083e0ad",
+        "order": 3,
+        "width": 5,
         "height": 1,
         "passthru": false,
         "label": "GET NOW",
         "tooltip": "",
-        "color": "#4169E1",
+        "color": "",
         "bgcolor": "",
         "className": "",
         "icon": "",
@@ -329,21 +257,21 @@
         "y": 220,
         "wires": [
             [
-                "cdec4a44c3a6470b"
+                "c7e6244c9da7995a"
             ]
         ]
     },
     {
-        "id": "22f3c2cd45d2d7cc",
+        "id": "061ca0e9cd80384c",
         "type": "ui_dropdown",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Polling Node 1",
         "label": "Polling node 1:",
         "tooltip": "",
         "place": "",
-        "group": "3481361afa687a93",
-        "order": 5,
-        "width": 6,
+        "group": "2e7e904a8083e0ad",
+        "order": 6,
+        "width": 10,
         "height": 1,
         "passthru": true,
         "multiple": false,
@@ -382,21 +310,21 @@
         "y": 440,
         "wires": [
             [
-                "72f63fd5fab4a859"
+                "98d2ab9969fcdb74"
             ]
         ]
     },
     {
-        "id": "416a0cdd36519871",
+        "id": "6d94b623b8bff5a5",
         "type": "ui_dropdown",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Polling Node 2",
         "label": "Polling node 2:",
         "tooltip": "",
         "place": "",
-        "group": "3481361afa687a93",
-        "order": 6,
-        "width": 6,
+        "group": "2e7e904a8083e0ad",
+        "order": 7,
+        "width": 10,
         "height": 1,
         "passthru": true,
         "multiple": false,
@@ -435,21 +363,21 @@
         "y": 520,
         "wires": [
             [
-                "faca54c2002475c6"
+                "c27b64cefcf0b381"
             ]
         ]
     },
     {
-        "id": "85819d0290336076",
+        "id": "8860a7595b552689",
         "type": "ui_dropdown",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Node Selector",
         "label": "Select node:",
         "tooltip": "",
         "place": "",
-        "group": "3481361afa687a93",
+        "group": "2e7e904a8083e0ad",
         "order": 10,
-        "width": 8,
+        "width": 6,
         "height": 1,
         "passthru": true,
         "multiple": false,
@@ -478,19 +406,19 @@
         "y": 1020,
         "wires": [
             [
-                "34d23aafab3ae2d4"
+                "c569a55cc910db35"
             ]
         ]
     },
     {
-        "id": "eed4c24622f41a23",
+        "id": "bea86514edcb2ded",
         "type": "ui_date_picker",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "Date Picker",
         "label": "Date:",
-        "group": "3481361afa687a93",
+        "group": "2e7e904a8083e0ad",
         "order": 11,
-        "width": 9,
+        "width": 6,
         "height": 1,
         "passthru": true,
         "topic": "",
@@ -500,40 +428,39 @@
         "y": 900,
         "wires": [
             [
-                "a33040c915220bda",
-                "70d59f971c81b594"
+                "95110ddfffa2cdab"
             ]
         ]
     },
     {
-        "id": "37d3277edbe9fa36",
+        "id": "8686d74fe9755030",
         "type": "ui_text",
-        "z": "b29c791c181c83d0",
-        "group": "3481361afa687a93",
+        "z": "30a0866f4520c757",
+        "group": "2e7e904a8083e0ad",
         "order": 1,
-        "width": 8,
+        "width": 6,
         "height": 1,
         "name": "Main Status",
         "label": "Main:",
         "format": "<span style=\"{{msg.main_status === 'ONLINE' ? 'color:green;font-weight:bold;' : 'color:red;font-weight:bold;'}}\">{{msg.main_status}}</span>",
         "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": "",
+        "className": "my-status",
+        "style": true,
+        "font": "Arial,Arial,Helvetica,sans-serif",
+        "fontSize": "20",
         "color": "#000000",
         "x": 1330,
         "y": 360,
         "wires": []
     },
     {
-        "id": "9cc002cb101f79ab",
+        "id": "403ecf1e4c14da31",
         "type": "ui_table",
-        "z": "b29c791c181c83d0",
-        "group": "3481361afa687a93",
+        "z": "30a0866f4520c757",
+        "group": "2e7e904a8083e0ad",
         "name": "History Table",
-        "order": 13,
-        "width": 24,
+        "order": 14,
+        "width": 20,
         "height": 12,
         "columns": [
             {
@@ -594,51 +521,51 @@
         "wires": []
     },
     {
-        "id": "0a775f4a44e50ada",
+        "id": "7f0531a96dd89f42",
         "type": "ui_template",
-        "z": "b29c791c181c83d0",
-        "group": "3481361afa687a93",
+        "z": "30a0866f4520c757",
+        "group": "2e7e904a8083e0ad",
         "name": "Node 1 Box",
-        "order": 3,
-        "width": 0,
-        "height": 0,
-        "format": "<style>\n  .node-box { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }\n  .node-title { font-size: 16px; margin: 0; display: flex; justify-content: space-between; }\n  .node-data { margin: 5px 0; }\n  .status-online { color: green; font-weight: bold; }\n  .status-offline { color: red; font-weight: bold; }\n</style>\n\n<div class=\"node-box\">\n  <p class=\"node-title\">\n    <span>Node 1:</span> \n    <span ng-class=\"{'status-online': flow.status_node_1 === 'ONLINE', 'status-offline': flow.status_node_1 !== 'ONLINE'}\">{{flow.status_node_1 || 'OFFLINE'}}</span>\n  </p>\n  <p class=\"node-data\">Temperature 1: {{flow.temp_node_1 | number:2}} °C</p>\n  <p class=\"node-data\">Humidity 1: {{flow.humid_node_1 | number:2}} %</p>\n</div>",
-        "storeOutMessages": false,
-        "fwdInMessages": false,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 890,
-        "y": 80,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "d792ce77f6ae4a9e",
-        "type": "ui_template",
-        "z": "b29c791c181c83d0",
-        "group": "3481361afa687a93",
-        "name": "Node 2 Box",
         "order": 4,
-        "width": 0,
-        "height": 0,
-        "format": "<style>\n  .node-box { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }\n  .node-title { font-size: 16px; margin: 0; display: flex; justify-content: space-between; }\n  .node-data { margin: 5px 0; }\n  .status-online { color: green; font-weight: bold; }\n  .status-offline { color: red; font-weight: bold; }\n</style>\n\n<div class=\"node-box\">\n  <p class=\"node-title\">\n    <span>Node 2:</span>\n    <span ng-class=\"{'status-online': flow.status_node_2 === 'ONLINE', 'status-offline': flow.status_node_2 !== 'ONLINE'}\">{{flow.status_node_2 || 'OFFLINE'}}</span>\n  </p>\n  <p class=\"node-data\">Temperature 2: {{flow.temp_node_2 | number:2}} °C</p>\n  <p class=\"node-data\">Humidity 2: {{flow.humid_node_2 | number:2}} %</p>\n  <p class=\"node-data\">Bar 2: {{flow.humid_node_2 | number:2}} %</p>\n</div>",
+        "width": 10,
+        "height": 3,
+        "format": "<style>\n  .node-box {\n    border: 1px solid #ccc;\n    padding: 10px;\n    margin-bottom: 10px;\n  }\n\n  .node-title {\n    font-size: 26px;\n    font-weight: bold;\n    margin: 0;\n    display: flex;\n    justify-content: space-between;\n  }\n\n  .node-data {\n    margin: 5px 0;\n  }\n\n  .status-online {\n    color: green;\n    font-weight: bold;\n  }\n\n  .status-offline {\n    color: red;\n    font-weight: bold;\n  }\n</style>\n\n<div class=\"node-box\">\n  <p class=\"node-title\">\n    <span>Node 1:</span>\n  </p>\n  <p class=\"node-data\">Temperature: {{msg.payload.temperature | number:2}} °C</p>\n  <p class=\"node-data\">Humidity: {{msg.payload.humidity | number:2}} %</p>\n  <p class=\"node-data\">Battey: {{msg.payload.batteryVoltage | number:2}} V</p>\n  <p class=\"node-data\">Updated: {{msg.payload.updatedAt }} </p>\n</div>",
         "storeOutMessages": false,
         "fwdInMessages": false,
         "resendOnRefresh": true,
         "templateScope": "local",
         "className": "",
-        "x": 890,
+        "x": 1090,
         "y": 20,
         "wires": [
             []
         ]
     },
     {
-        "id": "c1323bab9c96cfe5",
+        "id": "7ef9f0788320fc15",
+        "type": "ui_template",
+        "z": "30a0866f4520c757",
+        "group": "2e7e904a8083e0ad",
+        "name": "Node 2 Box",
+        "order": 5,
+        "width": 10,
+        "height": 3,
+        "format": "<style>\n  .node-box {\n    border: 1px solid #ccc;\n    padding: 10px;\n    margin-bottom: 10px;\n  }\n\n  .node-title {\n    font-size: 16px;\n    font-weight: bold;\n    margin: 0;\n    display: flex;\n    justify-content: space-between;\n  }\n\n  .node-data {\n    margin: 5px 0;\n  }\n\n  .status-online {\n    color: green;\n    font-weight: bold;\n  }\n\n  .status-offline {\n    color: red;\n    font-weight: bold;\n  }\n</style>\n\n<div class=\"node-box\">\n  <p class=\"node-title\">\n    <span>Node 2:</span>\n  </p>\n  <p class=\"node-data\">Temperature: {{msg.payload.temperature | number:2}} °C</p>\n  <p class=\"node-data\">Humidity: {{msg.payload.humidity | number:2}} %</p>\n  <p class=\"node-data\">Battery: {{msg.payload.batteryVoltage | number:2}} V</p>\n  <p class=\"node-data\">Updated: {{msg.payload.updatedAt }}</p>\n</div>",
+        "storeOutMessages": false,
+        "fwdInMessages": false,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 1090,
+        "y": 100,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d75268e2a32bf2c6",
         "type": "inject",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "",
         "props": [
             {
@@ -660,14 +587,14 @@
         "y": 740,
         "wires": [
             [
-                "4246f9e334806e9c"
+                "908e7a32f507f9e3"
             ]
         ]
     },
     {
-        "id": "02fb3cc6ae5c730d",
+        "id": "214e14f817f775f3",
         "type": "function",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "function 1",
         "func": "flow.set(\"temp\",msg.payload)",
         "outputs": 1,
@@ -683,25 +610,9 @@
         ]
     },
     {
-        "id": "b11c8bae9e6d2884",
-        "type": "debug",
-        "z": "b29c791c181c83d0",
-        "name": "debug 1",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 880,
-        "y": 800,
-        "wires": []
-    },
-    {
-        "id": "a33040c915220bda",
+        "id": "95110ddfffa2cdab",
         "type": "function",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "function 2",
         "func": "// Lấy mảng dữ liệu từ flow context\nconst data = flow.get(\"temp\");\nconst targetDate = new Date(msg.payload); // Chuyển timestamp thành đối tượng Date\n\n// Kiểm tra nếu dữ liệu không tồn tại\nif (!data || !Array.isArray(data)) {\n    node.warn(\"Không tìm thấy dữ liệu hoặc dữ liệu không phải mảng\");\n    msg.payload = [];\n    return msg;\n}\n\n// Lọc dữ liệu theo ngày\nmsg.payload = data.filter(item => {\n    // Chuyển đổi chuỗi ISO date thành đối tượng Date\n    const itemDate = new Date(item.time);\n    \n    // So sánh ngày (không bao gồm giờ)\n    return itemDate.getFullYear() === targetDate.getFullYear() && \n           itemDate.getMonth() === targetDate.getMonth() && \n           itemDate.getDate() === targetDate.getDate();\n});\n\nreturn msg;",
         "outputs": 1,
@@ -714,15 +625,14 @@
         "y": 900,
         "wires": [
             [
-                "9cc002cb101f79ab",
-                "cbe78c80e4aaaa51"
+                "403ecf1e4c14da31"
             ]
         ]
     },
     {
-        "id": "34d23aafab3ae2d4",
+        "id": "c569a55cc910db35",
         "type": "function",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "function 3",
         "func": "// Lấy mảng dữ liệu từ flow context\nconst data = flow.get(\"temp\");\nconst nodeFilter = msg.payload;\n\n// Kiểm tra nếu dữ liệu không tồn tại\nif (!data || !Array.isArray(data)) {\n    node.warn(\"Không tìm thấy dữ liệu hoặc dữ liệu không phải mảng\");\n    msg.payload = [];\n    return msg;\n}\n\n// Lọc dữ liệu dựa trên giá trị node\nif (!nodeFilter || nodeFilter === \"all\") {\n    // Trả về tất cả dữ liệu nếu là \"all\"\n    msg.payload = data;\n} else {\n    // Lọc dữ liệu theo node được chỉ định\n    msg.payload = data.filter(item => item.node === nodeFilter);\n}\n\nreturn msg;",
         "outputs": 1,
@@ -735,51 +645,18 @@
         "y": 1020,
         "wires": [
             [
-                "9cc002cb101f79ab",
-                "8309df40bb2f12a3"
+                "403ecf1e4c14da31"
             ]
         ]
     },
     {
-        "id": "70d59f971c81b594",
-        "type": "debug",
-        "z": "b29c791c181c83d0",
-        "name": "debug 2",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 520,
-        "y": 1080,
-        "wires": []
-    },
-    {
-        "id": "8309df40bb2f12a3",
-        "type": "debug",
-        "z": "b29c791c181c83d0",
-        "name": "debug 3",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 900,
-        "y": 1120,
-        "wires": []
-    },
-    {
-        "id": "8a738056b83fbd06",
+        "id": "7f6bfb550ee5cfef",
         "type": "ui_button",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "",
-        "group": "3481361afa687a93",
-        "order": 12,
-        "width": 7,
+        "group": "2e7e904a8083e0ad",
+        "order": 13,
+        "width": 5,
         "height": 1,
         "passthru": false,
         "label": "Refresh",
@@ -796,15 +673,157 @@
         "y": 820,
         "wires": [
             [
-                "4246f9e334806e9c"
+                "908e7a32f507f9e3"
             ]
         ]
     },
     {
-        "id": "cbe78c80e4aaaa51",
+        "id": "d3395c0a569b6b67",
+        "type": "ui_text",
+        "z": "30a0866f4520c757",
+        "group": "2e7e904a8083e0ad",
+        "order": 8,
+        "width": 6,
+        "height": 1,
+        "name": "History",
+        "label": "History",
+        "format": "",
+        "layout": "row-spread",
+        "className": "my-status",
+        "style": true,
+        "font": "Arial,Arial,Helvetica,sans-serif",
+        "fontSize": "20",
+        "color": "#000000",
+        "x": 1380,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "301afbc8c0c823c2",
+        "type": "ui_template",
+        "z": "30a0866f4520c757",
+        "group": "2e7e904a8083e0ad",
+        "name": "my-status",
+        "order": 14,
+        "width": 0,
+        "height": 0,
+        "format": "<style>\n    .my-status {\n        color: red;\n        font-size: 20px;\n        font-weight: bold;\n        background-color: #eee;\n        padding: 6px;\n        border-radius: 4px;\n    }\n</style>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "my-status",
+        "x": 1640,
+        "y": 100,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3e8f890cbdb11afa",
+        "type": "mqtt in",
+        "z": "30a0866f4520c757",
+        "name": "MQTT Data Input Node1",
+        "topic": "lora_sensor/data",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "mqtt_broker",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 330,
+        "y": 60,
+        "wires": [
+            [
+                "cf3c60db837e836d",
+                "a3754564e7c963cd"
+            ]
+        ]
+    },
+    {
+        "id": "cf3c60db837e836d",
+        "type": "function",
+        "z": "30a0866f4520c757",
+        "name": "Parse Data",
+        "func": "let data = (typeof msg.payload === 'string') ? JSON.parse(msg.payload) : msg.payload;\n\nif (!data || !data.nodeId) {\n    return null;\n}\n\n// Làm tròn số\ndata.temperature = parseFloat(data.temperature.toFixed(2));\ndata.humidity = parseFloat(data.humidity.toFixed(2));\ndata.batteryVoltage = parseFloat(data.batteryVoltage.toFixed(2));\n\n// Format thời gian\nlet d = new Date();\ndata.updatedAt = d.toLocaleString();\n\nlet nodeId = data.nodeId.toLowerCase();\n\nswitch (nodeId) {\n    case \"node1\":\n        return [{ payload: data }, null];\n    case \"node2\":\n        return [null, { payload: data }];\n    default:\n        return null;\n}\n",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 40,
+        "wires": [
+            [
+                "7f0531a96dd89f42"
+            ],
+            [
+                "7ef9f0788320fc15"
+            ]
+        ]
+    },
+    {
+        "id": "a3754564e7c963cd",
+        "type": "function",
+        "z": "30a0866f4520c757",
+        "name": "function 4",
+        "func": "let data = msg.payload;\n\nif (!data || !data.nodeId) return null;\n\nlet ret = {\n    payload: {\n        temperature: parseFloat(data.temperature).toFixed(2),\n        node: parseFloat(data.nodeId),\n        humidity: parseFloat(data.humidity).toFixed(2),\n        battery: parseFloat(data.batteryVoltage).toFixed(2)\n    },\n    tags: {\n        nodeId: data.nodeId\n    },\n    measurement: \"history\",   // thêm measurement nếu cần\n    database: \"UIT_LORA\",   // thêm measurement nếu cần\n};\n\nreturn ret;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 140,
+        "wires": [
+            [
+                "43092cc488728e5b",
+                "b4585ec1c7e9031d"
+            ]
+        ]
+    },
+    {
+        "id": "43092cc488728e5b",
         "type": "debug",
-        "z": "b29c791c181c83d0",
-        "name": "debug 4",
+        "z": "30a0866f4520c757",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 860,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "b4585ec1c7e9031d",
+        "type": "influxdb out",
+        "z": "30a0866f4520c757",
+        "influxdb": "influxdb_config",
+        "name": "Save to influx",
+        "measurement": "history",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1060,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "890a8f5a47e3b9e3",
+        "type": "debug",
+        "z": "30a0866f4520c757",
+        "name": "debug 2",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -812,14 +831,14 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1020,
-        "y": 980,
+        "x": 720,
+        "y": 560,
         "wires": []
     },
     {
-        "id": "a62e3bda1eae91e2",
+        "id": "b998ca03f349aed8",
         "type": "ui_spacer",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "spacer",
         "group": "3481361afa687a93",
         "order": 2,
@@ -827,9 +846,9 @@
         "height": 1
     },
     {
-        "id": "d902897b29a3bb44",
+        "id": "0b80eb8993320eba",
         "type": "ui_spacer",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "spacer",
         "group": "3481361afa687a93",
         "order": 7,
@@ -837,13 +856,43 @@
         "height": 1
     },
     {
-        "id": "943a0b2091d9d352",
+        "id": "ad2deba8c4f6d61b",
         "type": "ui_spacer",
-        "z": "b29c791c181c83d0",
+        "z": "30a0866f4520c757",
         "name": "spacer",
         "group": "3481361afa687a93",
         "order": 9,
         "width": 24,
+        "height": 1
+    },
+    {
+        "id": "106c10e0a0244441",
+        "type": "ui_spacer",
+        "z": "30a0866f4520c757",
+        "name": "spacer",
+        "group": "2e7e904a8083e0ad",
+        "order": 2,
+        "width": 9,
+        "height": 1
+    },
+    {
+        "id": "fe801dae00be3b02",
+        "type": "ui_spacer",
+        "z": "30a0866f4520c757",
+        "name": "spacer",
+        "group": "2e7e904a8083e0ad",
+        "order": 9,
+        "width": 14,
+        "height": 1
+    },
+    {
+        "id": "9d650d637dbcd9af",
+        "type": "ui_spacer",
+        "z": "30a0866f4520c757",
+        "name": "spacer",
+        "group": "2e7e904a8083e0ad",
+        "order": 12,
+        "width": 3,
         "height": 1
     },
     {
@@ -888,10 +937,21 @@
         "rejectUnauthorized": false
     },
     {
+        "id": "2e7e904a8083e0ad",
+        "type": "ui_group",
+        "name": "History",
+        "tab": "58e275bb6b9e28eb",
+        "order": 1,
+        "disp": true,
+        "width": 20,
+        "collapse": false,
+        "className": ""
+    },
+    {
         "id": "3481361afa687a93",
         "type": "ui_group",
         "name": "Main",
-        "tab": "dashboard_tab",
+        "tab": "58e275bb6b9e28eb",
         "order": 1,
         "disp": true,
         "width": 24,
@@ -899,7 +959,7 @@
         "className": ""
     },
     {
-        "id": "dashboard_tab",
+        "id": "58e275bb6b9e28eb",
         "type": "ui_tab",
         "name": "LoRa Sensor",
         "icon": "dashboard",
