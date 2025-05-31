@@ -1,226 +1,214 @@
 /**
- * Chương trình Arduino đọc dữ liệu từ cảm biến SHT30 và truyền qua LoRa E32
- * Node truyền: Arduino + SHT30 + LoRa E32
+ * Arduino Node - Optimized for minimal memory usage
+ * Đọc sensor SHT30 và gửi qua LoRa E32
  */
 
- 
 #include <Wire.h>
 #include <SoftwareSerial.h>
 
-// Địa chỉ I2C mặc định của SHT30 là 0x44
+// SHT30 configuration
 #define SHT30_ADDRESS 0x44
-
-// Command để đo nhiệt độ và độ ẩm với độ phân giải cao (0x2C06)
 #define SHT30_MEASURE_HIGH 0x2C
 #define SHT30_MEASURE_HIGH_REP 0x06
 
-// Cấu hình chân cho module LoRa E32
-#define E32_M0 6 // M0 của E32
-#define E32_M1 7 // M1 của E32
-// Không sử dụng chân AUX
+// LoRa E32 configuration
+#define E32_M0 6
+#define E32_M1 7
 
-// Định nghĩa địa chỉ node - mỗi node nên có một địa chỉ duy nhất
-#define NODE_ID "NODE001"
+// Node configuration
+#define NODE_ID "node1"
+#define MAX_PACKET_SIZE 64
+#define MAX_ACK_SIZE 32
 
-// Khởi tạo SoftwareSerial cho giao tiếp với E32
+// SoftwareSerial for E32
 SoftwareSerial E32Serial(11, 10); // RX, TX
 
-// Cấu trúc dữ liệu gửi
-#define MAX_PACKET_SIZE 128
-
-// Biến toàn cục
-char dataPacket[MAX_PACKET_SIZE]; // Buffer để lưu chuỗi dữ liệu
+// Variables - stored in RAM only
+char dataPacket[MAX_PACKET_SIZE];
+char ackBuffer[MAX_ACK_SIZE];
 unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 10000; // Gửi dữ liệu mỗi 10 giây
+unsigned long pollingInterval = 10000; // Default 10 seconds
+bool pollingEnabled = true;
+
+// ACK handling
+unsigned long ackWaitStart = 0;
+const unsigned long ACK_TIMEOUT = 2000;
+bool waitingForAck = false;
 
 void setup() {
-  Serial.begin(9600);  // Khởi tạo Serial để debug
-  E32Serial.begin(9600); // Khởi tạo giao tiếp với E32, tốc độ mặc định là 9600
-  Wire.begin();        // Khởi tạo I2C
+  Serial.begin(9600);
+  E32Serial.begin(9600);
+  Wire.begin();
   
-  // Thiết lập chân điều khiển E32
+  // Setup E32 control pins
   pinMode(E32_M0, OUTPUT);
   pinMode(E32_M1, OUTPUT);
+  setE32Mode(0, 0); // Normal mode
   
-  // Thiết lập chế độ hoạt động bình thường cho E32
-  setE32Mode(HIGH, HIGH); // M0=0, M1=0: Normal mode
-  
-  Serial.println("Initializing the system...");
-  Serial.print("Node ID: ");
+  Serial.println(F("Node start"));
   Serial.println(NODE_ID);
   
-  // Kiểm tra kết nối với cảm biến SHT30
-  if (isConnected()) {
-    Serial.println("The SHT30 sensor has been successfully connected!");
-  } else {
-    Serial.println("Cannot find the SHT30 sensor. Please check the connection!");
-    while (1); // Dừng chương trình nếu không tìm thấy cảm biến
+  // Check SHT30
+  if (!isConnected()) {
+    Serial.println(F("SHT30 error"));
+    while (1);
   }
-
-  delay(1000); // Đợi E32 khởi động hoàn toàn
-  Serial.println("The system is ready. Starting to read and send data.");
+  
+  Serial.println(F("Ready"));
+  delay(1000);
 }
 
 void loop() {
-  // Đọc dữ liệu từ cảm biến theo chu kỳ
   unsigned long currentTime = millis();
   
-  if (currentTime - lastSendTime >= sendInterval) {
+  // Check for ACK/commands
+  checkForAck();
+  
+  // Send data if enabled and time reached
+  if (pollingEnabled && (currentTime - lastSendTime >= pollingInterval)) {
+    sendSensorData();
     lastSendTime = currentTime;
+    waitingForAck = true;
+    ackWaitStart = currentTime;
+  }
+  
+  // Handle ACK timeout
+  if (waitingForAck && (currentTime - ackWaitStart > ACK_TIMEOUT)) {
+    waitingForAck = false;
+  }
+}
+
+void sendSensorData() {
+  float temp, hum;
+  
+  if (readSHT30(&temp, &hum)) {
+    // Convert to strings with minimal precision
+    int tempInt = (int)(temp * 100);  // 24.18 -> 2418
+    int humInt = (int)(hum * 100);    // 57.94 -> 5794
+    uint16_t battery = analogRead(A0);
     
-    // Đọc dữ liệu từ cảm biến SHT30
-    float temperature, humidity;
+    // Create compact packet - no timestamp
+    sprintf(dataPacket, "ID:%s,T:%d.%02d,H:%d.%02d,B:%d", 
+            NODE_ID, 
+            tempInt/100, tempInt%100,
+            humInt/100, humInt%100,
+            battery);
     
-    if (readSHT30(&temperature, &humidity)) {
-      // Hiển thị dữ liệu trên Serial để debug
-      Serial.print("Temperature: ");
-      Serial.print(temperature, 2);
-      Serial.print(" °C\t");
-      Serial.print("Humidity: ");
-      Serial.print(humidity, 2);
-      Serial.println(" %");
+    E32Serial.println(dataPacket);
+    Serial.print(F("TX: "));
+    Serial.println(dataPacket);
+  }
+}
+
+void checkForAck() {
+  static char buffer[MAX_ACK_SIZE];
+  static byte bufferIndex = 0;
+  static unsigned long lastCharTime = 0;
+  
+  while (E32Serial.available()) {
+    char c = E32Serial.read();
+    
+    if (bufferIndex < MAX_ACK_SIZE - 1) {
+      buffer[bufferIndex++] = c;
+    }
+    lastCharTime = millis();
+  }
+  
+  if (bufferIndex > 0 && (millis() - lastCharTime > 100)) {
+    buffer[bufferIndex] = '\0';
+    processAck(buffer);
+    bufferIndex = 0;
+    waitingForAck = false;
+  }
+}
+
+void processAck(const char* msg) {
+  Serial.print(F("RX: "));
+  Serial.println(msg);
+  
+  // Simple string parsing without JSON library
+  // Expected: ACK,NODE001,polling:30,getNow:1
+  
+  // Check if it's our ACK
+  if (strstr(msg, "ACK") && strstr(msg, NODE_ID)) {
+    Serial.println(F("ACK OK"));
+    
+    // Look for getNow command
+    if (strstr(msg, "getNow:1")) {
+      Serial.println(F("GET_NOW"));
+      sendSensorData();
+    }
+    
+    // Look for polling update
+    char* pollingPos = strstr(msg, "polling:");
+    if (pollingPos) {
+      pollingPos += 8; // Skip "polling:"
       
-      // Chuyển đổi giá trị float thành chuỗi
-      char tempStr[10];
-      char humStr[10];
-      
-      // Sử dụng dtostrf để chuyển float thành chuỗi
-      dtostrf(temperature, 5, 2, tempStr);
-      dtostrf(humidity, 5, 2, humStr);
-      
-      // Loại bỏ khoảng trắng dư thừa
-      for(int i=0; tempStr[i]==' '; i++) {
-        for(int j=i; tempStr[j]; j++) tempStr[j]=tempStr[j+1];
-        i--;
+      if (strncmp(pollingPos, "OFF", 3) == 0) {
+        pollingEnabled = false;
+        Serial.println(F("Polling OFF"));
+      } else {
+        int newInterval = parseNumber(pollingPos);
+        if (newInterval > 0) {
+          pollingInterval = newInterval * 1000UL;
+          pollingEnabled = true;
+          Serial.print(F("Polling: "));
+          Serial.println(newInterval);
+        }
       }
-      for(int i=0; humStr[i]==' '; i++) {
-        for(int j=i; humStr[j]; j++) humStr[j]=humStr[j+1];
-        i--;
-      }
-      
-      // Đọc điện áp pin (tùy chọn)
-      uint16_t batteryLevel = analogRead(A0);
-      
-      // Đóng gói dữ liệu thành chuỗi, thêm địa chỉ node 
-      sprintf(dataPacket, "ID:%s,T:%s,H:%s,B:%d,TS:%lu", 
-              NODE_ID,
-              tempStr, 
-              humStr, 
-              batteryLevel, 
-              currentTime);
-      
-      // Gửi dữ liệu qua LoRa E32
-      sendData(dataPacket);
-    } else {
-      Serial.println("Error reading data from the SHT30 sensor.");
+      lastSendTime = millis(); // Reset timing
     }
   }
 }
-// Thiết lập chế độ cho module E32
+
+// Parse number from string (simpler than atoi)
+int parseNumber(const char* str) {
+  int result = 0;
+  while (*str >= '0' && *str <= '9') {
+    result = result * 10 + (*str - '0');
+    str++;
+  }
+  return result;
+}
+
 void setE32Mode(int m0, int m1) {
   digitalWrite(E32_M0, m0);
   digitalWrite(E32_M1, m1);
-  delay(100); // Đợi E32 chuyển chế độ
-}
-
-// Gửi dữ liệu qua E32
-void sendData(const char* data) {
-  Serial.print("Sending data via LoRa... ");
-  Serial.println(data);
-  
-  // Gửi chuỗi dữ liệu qua UART tới E32
-  E32Serial.print(data);
-  
-  // Thêm độ trễ để đảm bảo E32 có đủ thời gian gửi dữ liệu
   delay(100);
-  
-  Serial.println("Data sent successfully!!");
 }
 
-// Kiểm tra kết nối với cảm biến
 bool isConnected() {
   Wire.beginTransmission(SHT30_ADDRESS);
-  byte error = Wire.endTransmission();
-  
-  return (error == 0); // Trả về true nếu không có lỗi
+  return (Wire.endTransmission() == 0);
 }
 
-// Đọc dữ liệu từ cảm biến SHT30
 bool readSHT30(float *temperature, float *humidity) {
   uint8_t data[6];
   
-  // Gửi lệnh đo với độ phân giải cao
+  // Send command
   Wire.beginTransmission(SHT30_ADDRESS);
   Wire.write(SHT30_MEASURE_HIGH);
   Wire.write(SHT30_MEASURE_HIGH_REP);
-  if (Wire.endTransmission() != 0) {
-    return false; // Trả về false nếu có lỗi khi gửi lệnh
-  }
+  if (Wire.endTransmission() != 0) return false;
   
-  delay(100); // Đợi cảm biến xử lý lệnh và đo
+  delay(20); // Reduced delay
   
-  // Đọc 6 byte dữ liệu (2 nhiệt độ + 1 CRC + 2 độ ẩm + 1 CRC)
+  // Read data
   Wire.requestFrom(SHT30_ADDRESS, (uint8_t)6);
+  if (Wire.available() != 6) return false;
   
-  if (Wire.available() != 6) {
-    return false; // Trả về false nếu không đủ dữ liệu
-  }
-  
-  // Đọc 6 byte dữ liệu
   for (int i = 0; i < 6; i++) {
     data[i] = Wire.read();
   }
   
-  // Tính toán CRC cho nhiệt độ
-  if (!checkCRC(data[0], data[1], data[2])) {
-    return false; // Dữ liệu nhiệt độ không hợp lệ
-  }
+  // Skip CRC check to save memory
   
-  // Tính toán CRC cho độ ẩm
-  if (!checkCRC(data[3], data[4], data[5])) {
-    return false; // Dữ liệu độ ẩm không hợp lệ
-  }
-  
-  // Tính toán nhiệt độ
+  // Calculate values
   uint16_t temp_raw = ((uint16_t)data[0] << 8) | data[1];
   *temperature = -45.0f + 175.0f * ((float)temp_raw / 65535.0f);
   
-  // Tính toán độ ẩm
   uint16_t hum_raw = ((uint16_t)data[3] << 8) | data[4];
   *humidity = 100.0f * ((float)hum_raw / 65535.0f);
   
-  return true; // Đọc dữ liệu thành công
-}
-
-// Kiểm tra giá trị CRC
-bool checkCRC(uint8_t msb, uint8_t lsb, uint8_t crc) {
-  uint8_t calculated_crc = calculateCRC(msb, lsb);
-  return (calculated_crc == crc);
-}
-
-// Tính toán giá trị CRC
-uint8_t calculateCRC(uint8_t msb, uint8_t lsb) {
-  uint8_t crc = 0xFF; // Giá trị khởi tạo
-  
-  // Tính CRC cho byte đầu tiên
-  crc ^= msb;
-  for (int i = 0; i < 8; i++) {
-    if (crc & 0x80) {
-      crc = (crc << 1) ^ 0x31; // Đa thức CRC-8: x^8 + x^5 + x^4 + 1 -> 0x31
-    } else {
-      crc = (crc << 1);
-    }
-  }
-  
-  // Tính CRC cho byte thứ hai
-  crc ^= lsb;
-  for (int i = 0; i < 8; i++) {
-    if (crc & 0x80) {
-      crc = (crc << 1) ^ 0x31;
-    } else {
-      crc = (crc << 1);
-    }
-  }
-  
-  return crc;
+  return true;
 }

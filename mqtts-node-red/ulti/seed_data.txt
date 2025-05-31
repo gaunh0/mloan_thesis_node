@@ -1,0 +1,2 @@
+
+{"nodeId": "node2", "temperature": 32.48, "humidity": 70.68, "batteryVoltage": 0.0041, "timestamp": 1748648736}

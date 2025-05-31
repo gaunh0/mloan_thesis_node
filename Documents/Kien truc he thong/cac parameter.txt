@@ -1,0 +1,21 @@
+graph TB
+   
+    subgraph "Control Commands"
+        C1[GET_NOW: Read immediately]
+        C2[SET_POLLING: Change interval]
+        C3[Node configuration]
+    end
+    
+    subgraph "MQTT Topics"
+        T1[lora_sensor/data]
+        T2[lora_sensor/get_now]
+        T3[lora_sensor/set_polling]
+        T4[lora_sensor/last_will]
+    end
+    
+    %% Network Details
+    subgraph "Network Layer"
+        NET1[LoRa: 433MHz, 3km range]
+        NET2[WiFi: Local network]
+        NET3[Internet: MQTT over TCP]
+    end

@@ -1,0 +1,17 @@
+graph TD
+    P1[Bắt đầu] --> P2[Kiểm tra lệnh từ Gateway]
+    P2 --> P3{Có lệnh mới?}
+    P3 -->|Có| P4[Xử lý lệnh]
+    P3 -->|Không| P5{Đến giờ gửi dữ liệu?}
+    
+    P4 --> P6{Lệnh gì?}
+    P6 -->|Gửi ngay| P7[Gửi dữ liệu ngay lập tức]
+    P6 -->|Thay đổi chu kỳ| P8[Cập nhật thời gian gửi]
+    
+    P5 -->|Chưa| P2
+    P5 -->|Rồi| P9[Gửi dữ liệu]
+    
+    P7 --> P2
+    P8 --> P2  
+    P9 --> P10[Chờ phản hồi từ Gateway]
+    P10 --> P2

@@ -1,0 +1,19 @@
+graph TD
+    L1[Khởi động LoRa] --> L2[Lắng nghe dữ liệu từ Node]
+    L2 --> L3{Có dữ liệu mới?}
+    L3 -->|Không| L2
+    L3 -->|Có| L4[Nhận dữ liệu cảm biến]
+    
+    L4 --> L5[Kiểm tra dữ liệu hợp lệ]
+    L5 --> L6{Dữ liệu OK?}
+    L6 -->|Không| L7[Bỏ qua gói tin]
+    L6 -->|Có| L8[Lưu thông tin Node]
+    
+    L8 --> L9[Chuẩn bị phản hồi]
+    L9 --> L10{Có lệnh cần gửi?}
+    L10 -->|Có| L11[Gửi phản hồi + lệnh]
+    L10 -->|Không| L12[Gửi phản hồi đơn giản]
+    
+    L7 --> L2
+    L11 --> L2
+    L12 --> L2

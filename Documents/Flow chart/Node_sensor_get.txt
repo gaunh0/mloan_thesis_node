@@ -1,0 +1,8 @@
+graph TD
+    A1[Khởi động] --> A2[Đọc cảm biến nhiệt độ, độ ẩm]
+    A2 --> A3{Đọc thành công?}
+    A3 -->|Có| A4[Đọc mức pin]
+    A3 -->|Không| A5[Báo lỗi]
+    A4 --> A6[Tạo gói dữ liệu]
+    A6 --> A7[Sẵn sàng gửi dữ liệu]
+    A5 --> A8[Thử lại sau]

@@ -1,0 +1,15 @@
+graph TD
+    S1[Khởi động] --> S2[Kết nối WiFi]
+    S2 --> S3[Kết nối MQTT Server]
+    S3 --> S4[Lắng nghe lệnh từ Server]
+    
+    S4 --> S5{Có lệnh mới?}
+    S5 -->|Có| S6[Lưu lệnh để gửi Node]
+    S5 -->|Không| S7{Có dữ liệu mới từ Node?}
+    
+    S6 --> S7
+    S7 -->|Có| S8[Gửi dữ liệu lên Server]
+    S7 -->|Không| S9[Gửi trạng thái định kỳ]
+    
+    S8 --> S4
+    S9 --> S4

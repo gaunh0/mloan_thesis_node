@@ -1,0 +1,44 @@
+graph TB
+    %% Node 1
+    N1[Node 1<br/>Arduino + SHT30<br/>ID: NODE001] 
+    
+    %% Node 2  
+    N2[Node 2<br/>Arduino + SHT30<br/>ID: NODE002]
+    
+    %% Gateway
+    GW[Gateway<br/>ESP32 + LoRa E32<br/>WiFi Enabled]
+    
+    %% MQTT Broker
+    MQTT[MQTT Broker installed on VPS]
+    
+    %% Node-RED Server
+    NR[Node-RED Server<br/>Data Processing<br/>Dashboard & Control]
+    
+    %% LoRa Communications
+    N1 -.->|LoRa 433MHz<br/>Sensor Data| GW
+    GW -.->|LoRa 433MHz<br/>ACK + Commands| N1
+    
+    N2 -.->|LoRa 433MHz<br/>Sensor Data| GW  
+    GW -.->|LoRa 433MHz<br/>ACK + Commands| N2
+    
+    %% WiFi/Internet Communications
+    GW -->|WiFi/Internet<br/>MQTT Publish<br/>lora_sensor/data| MQTT
+    MQTT -->|MQTT Subscribe<br/>Commands| GW
+    
+    %% Node-RED Communications
+    MQTT <-->|MQTT Protocol<br/>Data & Control| NR
+    
+    
+    
+    %% Styling
+    classDef nodeStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef gatewayStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    classDef serverStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef dataStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px
+    classDef networkStyle fill:#e1f5fe,stroke:#0277bd,stroke-width:1px
+    
+    class N1,N2 nodeStyle
+    class GW gatewayStyle
+    class MQTT,NR serverStyle
+    class D1,D2,D3,D4,C1,C2,C3,T1,T2,T3,T4 dataStyle
+    class NET1,NET2,NET3 networkStyle

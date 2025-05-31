@@ -1,115 +1,189 @@
-# Hệ Thống Thu Thập Dữ Liệu SHT30 qua LoRa E32
+# Hướng dẫn sử dụng hệ thống LoRa Sensor
 
-Dự án này xây dựng một hệ thống mạng cảm biến không dây sử dụng Arduino, cảm biến SHT30 và mô-đun truyền thông LoRa E32 để thu thập và truyền dữ liệu nhiệt độ và độ ẩm từ nhiều node khác nhau.
+## Tổng quan hệ thống
 
-## Tổng Quan
+Hệ thống gồm 2 thành phần chính:
+- **Arduino Node**: Đọc cảm biến SHT30 và truyền dữ liệu qua LoRa
+- **ESP32 Gateway**: Nhận dữ liệu từ Node và gửi lên MQTT broker
 
-Hệ thống này hoạt động như một mạng các node truyền (transmitter), mỗi node có địa chỉ duy nhất và thực hiện các chức năng sau:
-- Mỗi node có một ID duy nhất để phân biệt trong mạng lưới cảm biến
-- Đọc dữ liệu nhiệt độ và độ ẩm từ cảm biến SHT30 qua giao tiếp I2C
-- Định dạng dữ liệu thành chuỗi có cấu trúc bao gồm ID của node
-- Truyền dữ liệu không dây qua mô-đun LoRa E32
-- Thực hiện đọc và truyền dữ liệu theo chu kỳ được cấu hình
+## 1. Chuẩn bị phần cứng
 
-## Yêu Cầu Phần Cứng
+### Arduino Node
+- **Arduino Uno/Nano**
+- **Cảm biến SHT30** (kết nối I2C)
+- **Module LoRa E32**
+- **Nguồn pin** (đọc qua chân A0)
 
-- Arduino (Uno/Nano/Pro Mini...)
-- Cảm biến SHT30
-- Mô-đun LoRa E32
-- Dây cáp kết nối
-- (Tùy chọn) Pin hoặc nguồn năng lượng độc lập
+### ESP32 Gateway
+- **ESP32 DevKit**
+- **Module LoRa E32**
+- **Nút nhấn** (GPIO 23)
 
-## Kết Nối Phần Cứng
+### Sơ đồ kết nối
 
-### Kết nối SHT30 với Arduino:
-- VCC → 3.3V hoặc 5V (tùy theo phiên bản SHT30)
-- GND → GND
-- SDA → A4 (hoặc pin SDA của Arduino)
-- SCL → A5 (hoặc pin SCL của Arduino)
-
-### Kết nối LoRa E32 với Arduino:
+#### Arduino Node
+```
+SHT30:
 - VCC → 3.3V
 - GND → GND
-- RX → Pin 10 (TX Software Serial)
-- TX → Pin 11 (RX Software Serial)
+- SDA → A4 (I2C Data)
+- SCL → A5 (I2C Clock)
+
+LoRa E32:
+- VCC → 5V
+- GND → GND
+- RX → Pin 10
+- TX → Pin 11
 - M0 → Pin 6
 - M1 → Pin 7
-- (AUX không được sử dụng trong mã này)
 
-### Tùy chọn - Đo pin:
-- Pin dương → A0 (thông qua bộ chia điện áp nếu cần)
+Pin cảm biến:
+- A0 → Đầu đọc điện áp pin
+```
 
-## Đặc Điểm Chính
+#### ESP32 Gateway
+```
+LoRa E32:
+- VCC → 3.3V
+- GND → GND
+- RX → GPIO 16
+- TX → GPIO 17
+- M0 → GPIO 22
+- M1 → GPIO 21
 
-- **ID Node**: Mỗi node có một định danh duy nhất (mặc định: "NODE001")
-- **Chu kỳ đo**: Mặc định là 10 giây (có thể điều chỉnh)
-- **Định dạng dữ liệu**: `ID:[id_node],T:[nhiệt_độ],H:[độ_ẩm],B:[mức_pin],TS:[thời_gian]`
-- **Kiểm tra tính toàn vẹn**: Sử dụng CRC-8 để xác minh dữ liệu từ cảm biến
-- **Chế độ hoạt động LoRa**: Chế độ bình thường (M0=HIGH, M1=HIGH)
+Nút cấu hình:
+- GPIO 23 → Nút nhấn → GND
+```
 
-## Cài Đặt
+## 2. Cài đặt thư viện
 
-1. Cài đặt thư viện cần thiết:
-   - Wire.h (tích hợp sẵn trong Arduino IDE)
-   - SoftwareSerial.h (tích hợp sẵn trong Arduino IDE)
+**Xem cho vui chứ không cần nạp code lại chi**
 
-2. Kết nối phần cứng theo sơ đồ được mô tả ở trên
+### Arduino IDE - Node
+```
+Thư viện cần thiết:
+- Wire (built-in)
+- SoftwareSerial (built-in)
+```
 
-3. Tải mã nguồn lên Arduino qua Arduino IDE
+### Arduino IDE - Gateway
+```
+Thư viện cần thiết:
+- WiFi (ESP32 built-in)
+- WiFiManager
+- PubSubClient
+- ArduinoJson
+```
 
-4. Mở Serial Monitor (tốc độ 9600 baud) để xem dữ liệu debug
+## 3. Cấu hình và nạp code
 
-## Cấu Hình
+### Bước 1: Cấu hình Node ID
+Trong code Arduino Node, thay đổi:
+```cpp
+#define NODE_ID "NODE001"
+```
+Mỗi node cần có ID khác nhau (NODE002, NODE003, v.v.)
 
-Các thông số chính có thể được điều chỉnh:
+### Bước 2: Cấu hình MQTT (Gateway)
+Trong code ESP32 Gateway:
+```cpp
+const char* mqtt_server = "dev.combros.tech";
+const char* mqtt_username = "combros";
+const char* mqtt_password = "combros";
+```
 
-- `NODE_ID`: Định danh duy nhất của node (mặc định: "NODE001")
-- `sendInterval`: Thời gian giữa các lần đọc và gửi dữ liệu (mặc định: 10000ms)
-- `MAX_PACKET_SIZE`: Kích thước tối đa của gói dữ liệu (mặc định: 128 byte)
-- Chế độ LoRa E32: Được thiết lập trong hàm `setE32Mode()`
+### Bước 3: Nạp code
+1. Nạp code vào Arduino Node trước
+2. Nạp code vào ESP32 Gateway
 
-## Cách Hoạt Động
+## 4. Khởi động hệ thống
 
-1. Khi khởi động, hệ thống sẽ:
-   - Thiết lập kết nối với cảm biến SHT30
-   - Cấu hình mô-đun LoRa E32 ở chế độ hoạt động bình thường
-   - Hiển thị ID của node trên Serial Monitor
-   - Kiểm tra xem cảm biến SHT30 có được kết nối chính xác không
+### Khởi động lần đầu
 
-2. Trong quá trình hoạt động:
-   - Đọc dữ liệu từ SHT30 theo chu kỳ đã cấu hình
-   - Kiểm tra tính toàn vẹn dữ liệu bằng CRC
-   - Định dạng dữ liệu thành chuỗi có cấu trúc bao gồm ID của node
-   - Gửi dữ liệu qua mô-đun LoRa E32
-   - Hiển thị thông tin debug trên Serial Monitor
+1. **Bật Node**: LED trên Arduino sáng, hiển thị thông tin trên Serial Monitor
+2. **Bật Gateway**: ESP32 tạo WiFi hotspot "ESP32-Gateway"
+3. **Cấu hình WiFi**: 
+   - Kết nối WiFi "ESP32-Gateway" (password: "password")
+   - Mở browser → 192.168.4.1
+   - Chọn WiFi và nhập password
+   - Gateway tự động kết nối MQTT
 
-## Xử Lý Lỗi
+### Kiểm tra hoạt động
+- **Node Serial**: Hiển thị dữ liệu cảm biến và trạng thái gửi
+- **Gateway Serial**: Hiển thị dữ liệu nhận và MQTT status
+- **MQTT Broker**: Kiểm tra topic `lora_sensor/data`
 
-Mã nguồn có tích hợp một số cơ chế xử lý lỗi:
-- Kiểm tra kết nối cảm biến khi khởi động
-- Xác minh tính toàn vẹn dữ liệu bằng CRC
-- Thông báo lỗi qua Serial Monitor
+## 5. Sử dụng MQTT API
 
-## Mở Rộng
+### Topics chính
 
-Hệ thống có thể được mở rộng:
-- Triển khai nhiều node với ID khác nhau để tạo mạng cảm biến lớn hơn
-- Thêm cảm biến bổ sung vào mỗi node
-- Tối ưu hóa tiêu thụ năng lượng cho các ứng dụng chạy bằng pin
-- Bổ sung bảo mật cho dữ liệu được truyền
-- Thiết lập node trung tâm (gateway) để thu thập dữ liệu từ tất cả các node
+#### Nhận dữ liệu cảm biến
+```
+Topic: lora_sensor/data
+Format: {"nodeId":"NODE001","temperature":24.18,"humidity":57.94,"batteryVoltage":1.55}
+```
 
-## Lưu ý
+#### Yêu cầu đọc ngay lập tức
+```
+Topic: lora_sensor/get_now
+Message: {"type":"GET_NOW"}
+```
 
-- Đảm bảo thiết lập `NODE_ID` duy nhất cho mỗi node trong mạng lưới
-- Đảm bảo cấu hình node nhận (receiver) phù hợp với các thông số của node truyền
-- Kiểm tra điện áp hoạt động của tất cả các thành phần
-- Để mở rộng phạm vi, hãy cân nhắc cấu hình mức công suất phát của LoRa E32
+#### Điều khiển chu kỳ gửi dữ liệu
+```
+Topic: lora_sensor/set_polling
+Messages:
+- {"nodeId":"NODE001","polling":"30"}    // 30 giây
+- {"nodeId":"NODE001","polling":"OFF"}   // Tắt tự động gửi
+```
 
-## Giấy Phép
+#### Trạng thái Gateway
+```
+Topic: lora_sensor/last_will
+Messages:
+- {"type":"ONLINE"}   // Gateway online
+- {"type":"OFFLINE"}  // Gateway offline
+```
 
-MIT
 
-## Tác Giả
+## 6. Cấu hình nâng cao
 
-mloan
+### Thay đổi chu kỳ mặc định (Node)
+```cpp
+unsigned long pollingInterval = 30000; // 30 giây
+```
+
+### Cấu hình timeout ACK (Node)
+```cpp
+const unsigned long ACK_TIMEOUT = 3000; // 3 giây
+```
+
+### Cấu hình heartbeat (Gateway)
+```cpp
+const long statusUpdateInterval = 120000; // 2 phút
+```
+
+## 7. Quản lý WiFi Gateway
+
+### Cấu hình lại WiFi
+1. **Nhấn nút** (GPIO 23) trong **1-5 giây**
+2. Gateway vào chế độ cấu hình
+3. Kết nối WiFi "ESP32-Gateway"
+4. Cấu hình WiFi mới
+
+### Reset hoàn toàn
+1. **Nhấn giữ nút** (GPIO 23) **hơn 5 giây**
+2. Gateway xóa cấu hình WiFi và khởi động lại
+
+## Danh sách API
+
+Xem trong folder Documents
+
+## Workflow
+
+Xem trong folder Documents
+
+## Kiến trúc hệ thống
+
+Xem trong folder Documents
+
